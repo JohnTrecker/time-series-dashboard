@@ -41,7 +41,7 @@ export function DateRangePicker({
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>{trigger}</PopoverTrigger>
-      <PopoverContent align="end" className="p-0">
+      <PopoverContent align="end" className="p-0 w-auto">
         <Calendar
           mode="range"
           numberOfMonths={2}
