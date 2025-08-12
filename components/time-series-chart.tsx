@@ -2,7 +2,7 @@
 
 import { useMemo, useRef, useState } from "react"
 import { Bar, BarChart, CartesianGrid, ReferenceArea, ResponsiveContainer, XAxis, YAxis } from "recharts"
-import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart"
+import { ChartContainer } from "@/components/ui/chart"
 import { useChartsSync } from "@/components/charts-sync-provider"
 
 type Point = { date: string; value: number }
@@ -73,15 +73,16 @@ export default function TimeSeriesChart({
           <BarChart
             data={filtered}
             syncId="sync-all"
-            onMouseMove={(state: any) => {
-              if (!state || typeof state?.activeTooltipIndex !== "number") return
+            onMouseMove={(state: unknown) => {
+              const chartState = state as { activeTooltipIndex?: number } | null
+              if (!chartState || typeof chartState.activeTooltipIndex !== "number") return
               // Update selection drag index if dragging
               if (draggingRef.current) {
-                setDragCurrentIdx(state.activeTooltipIndex)
+                setDragCurrentIdx(chartState.activeTooltipIndex)
               }
               // Broadcast normalized hover for cross-grid overlay
               if (filtered.length > 1) {
-                const idx = Math.max(0, Math.min(filtered.length - 1, state.activeTooltipIndex))
+                const idx = Math.max(0, Math.min(filtered.length - 1, chartState.activeTooltipIndex))
                 const r = idx / (filtered.length - 1)
                 setHoverRatio(r)
               }
@@ -94,20 +95,22 @@ export default function TimeSeriesChart({
                 setDragCurrentIdx(null)
               }
             }}
-            onMouseDown={(state: any) => {
-              if (!state || typeof state?.activeTooltipIndex !== "number") return
+            onMouseDown={(state: unknown) => {
+              const chartState = state as { activeTooltipIndex?: number } | null
+              if (!chartState || typeof chartState.activeTooltipIndex !== "number") return
               draggingRef.current = true
-              const idx = Math.max(0, Math.min(filtered.length - 1, state.activeTooltipIndex))
+              const idx = Math.max(0, Math.min(filtered.length - 1, chartState.activeTooltipIndex))
               setDragStartIdx(idx)
               setDragCurrentIdx(idx)
             }}
-            onMouseUp={(state: any) => {
+            onMouseUp={(state: unknown) => {
               if (!draggingRef.current) return
               draggingRef.current = false
               const startIdx = dragStartIdx
+              const chartState = state as { activeTooltipIndex?: number } | null
               const endIdx =
-                typeof state?.activeTooltipIndex === "number"
-                  ? Math.max(0, Math.min(filtered.length - 1, state.activeTooltipIndex))
+                typeof chartState?.activeTooltipIndex === "number"
+                  ? Math.max(0, Math.min(filtered.length - 1, chartState.activeTooltipIndex))
                   : dragCurrentIdx
               if (startIdx != null && endIdx != null) {
                 const [a, b] = startIdx <= endIdx ? [startIdx, endIdx] : [endIdx, startIdx]
@@ -140,11 +143,15 @@ export default function TimeSeriesChart({
             )}
           </BarChart>
         </ResponsiveContainer>
-        <div className="mt-4">
+        <div className="mt-4 h-10 flex flex-row w-full justify-between">
           <div className="text-sm text-[#09090b]">{title}</div>
           {crosshairValue && (
-            <div className="text-sm text-[#71717a] mt-1">
-              Value: {crosshairValue.value.toFixed(1)}
+            <div 
+              className="text-sm rounded-md font-medium flex items-center overflow-hidden"
+              style={{ backgroundColor: color }}
+            >
+              <span className="text-white px-3 py-1">{new Date(crosshairValue.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+              <span style={{ marginRight: '2px', marginTop: '2px', marginBottom: '2px' }} className="bg-white rounded-r-md text-black px-2 py-1 flex-1 text-right">{crosshairValue.value}</span>
             </div>
           )}
         </div>
@@ -155,8 +162,9 @@ export default function TimeSeriesChart({
 
 // Bridge: when any chart sets a new range, forward to provider
 if (typeof window !== "undefined") {
-  window.addEventListener("charts:set-range", (e: any) => {
-    const detail = e.detail as { from: Date; to: Date }
+  window.addEventListener("charts:set-range", (e: Event) => {
+    const customEvent = e as CustomEvent<{ from: Date; to: Date }>
+    const detail = customEvent.detail
     const evt = new CustomEvent("charts:provider:set-range", { detail })
     window.dispatchEvent(evt)
   })

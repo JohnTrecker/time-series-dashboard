@@ -70,8 +70,9 @@ export function ChartsSyncProvider({ children }: { children: React.ReactNode }) 
 
   // Listen for programmatic range changes from charts
   if (typeof window !== "undefined") {
-    window.addEventListener("charts:provider:set-range", (e: any) => {
-      const { from, to } = e.detail as { from: Date; to: Date }
+    window.addEventListener("charts:provider:set-range", (e: Event) => {
+      const customEvent = e as CustomEvent<{ from: Date; to: Date }>
+      const { from, to } = customEvent.detail
       setDateRange({ from, to })
     })
   }

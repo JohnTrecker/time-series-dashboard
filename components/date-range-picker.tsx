@@ -16,36 +16,70 @@ export function DateRangePicker({
   trigger: React.ReactNode
 }) {
   const [open, setOpen] = React.useState(false)
+  const [selectedRange, setSelectedRange] = React.useState<DateRange | undefined>(value)
   const { setDateRange } = useChartsSync()
+  const preventCloseRef = React.useRef(false)
 
   const handleSelect = (range: DateRange | undefined) => {
-    if (!range?.from || !range?.to) return
-    // normalize times
-    const from = new Date(range.from.toDateString())
-    const to = new Date(range.to.toDateString())
-    setDateRange({ from, to })
-    onChange?.({ from, to })
-    setOpen(false)
+    setSelectedRange(range)
+    
+    // If we have only a start date, prevent the popover from closing
+    if (range?.from && !range?.to) {
+      preventCloseRef.current = true
+    }
+    
+    // Only close the popover when both dates are selected
+    if (range?.from && range?.to) {
+      preventCloseRef.current = false
+      // normalize times
+      const from = new Date(range.from.toDateString())
+      const to = new Date(range.to.toDateString())
+      setDateRange({ from, to })
+      onChange?.({ from, to })
+      setOpen(false)
+    }
   }
 
   // update context when charts dispatch selection events
   React.useEffect(() => {
-    const onExternal = (e: any) => {
-      const { from, to } = e.detail as { from: Date; to: Date }
-      setDateRange({ from, to })
+    const onExternal = (e: Event) => {
+      const customEvent = e as CustomEvent<{ from: Date; to: Date }>
+      const { from, to } = customEvent.detail
+      const newRange = { from, to }
+      setDateRange(newRange)
+      setSelectedRange(newRange)
     }
     window.addEventListener("charts:provider:set-range", onExternal)
     return () => window.removeEventListener("charts:provider:set-range", onExternal)
   }, [setDateRange])
 
+  // Update selectedRange when value prop changes
+  React.useEffect(() => {
+    setSelectedRange(value)
+  }, [value])
+
+  const handleOpenChange = (newOpen: boolean) => {
+    // If trying to close but we should prevent it, ignore the close request
+    if (!newOpen && preventCloseRef.current) {
+      return
+    }
+    
+    // Reset prevent close when opening
+    if (newOpen) {
+      preventCloseRef.current = false
+    }
+    
+    setOpen(newOpen)
+  }
+
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover open={open} onOpenChange={handleOpenChange}>
       <PopoverTrigger asChild>{trigger}</PopoverTrigger>
       <PopoverContent align="end" className="p-0 w-auto">
         <Calendar
           mode="range"
           numberOfMonths={2}
-          selected={value}
+          selected={selectedRange}
           onSelect={handleSelect}
           defaultMonth={value?.from ?? new Date()}
         />

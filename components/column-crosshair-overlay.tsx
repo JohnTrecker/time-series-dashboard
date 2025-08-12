@@ -71,7 +71,7 @@ export default function ColumnCrosshairOverlay({ gridRef }: { gridRef: React.Ref
   if (hoverRatio == null || positions.length === 0) return null
 
   return (
-    <div className="pointer-events-none absolute inset-0">
+    <div className="pointer-events-none absolute inset-0 z-20">
       {positions.map((left, i) => (
         <div
           key={i}

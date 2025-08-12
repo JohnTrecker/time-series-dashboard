@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useRef } from "react"
+import { useMemo, useRef, useEffect, useState } from "react"
 import { CalendarIcon } from "lucide-react"
 import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
@@ -11,6 +11,9 @@ import { DateRangePicker } from "@/components/date-range-picker"
 import { generateDailySeries, densifySeries } from "@/lib/generate-data"
 import TimeSeriesChart from "@/components/time-series-chart"
 import ColumnCrosshairOverlay from "@/components/column-crosshair-overlay"
+import ResizableChart from "@/components/resizable-chart"
+import { useChartPersistence } from "@/hooks/use-chart-persistence"
+import DragModeCrosshairOverlay from "@/components/drag-mode-crosshair-overlay"
 
 export default function Dashboard() {
   return (
@@ -75,6 +78,17 @@ function Toolbar() {
 function ChartsGrid() {
   const { responsive } = useChartsSync()
   const gridRef = useRef<HTMLDivElement>(null)
+  const { getLayout, updateLayout, isLoaded } = useChartPersistence()
+  const [viewportWidth, setViewportWidth] = useState(800)
+
+  useEffect(() => {
+    const updateWidth = () => {
+      setViewportWidth(window.innerWidth)
+    }
+    updateWidth()
+    window.addEventListener('resize', updateWidth)
+    return () => window.removeEventListener('resize', updateWidth)
+  }, [])
 
   // Generate 9 deterministic series covering a wide range
   const allSeries = useMemo(() => {
@@ -98,21 +112,62 @@ function ChartsGrid() {
   const row3 = "#f87171"
   const colors = [row1, row1, row1, row2, row2, row2, row3, row3, row3]
 
-  const gridClass = responsive
-    ? "mt-8 grid grid-cols-1 gap-8 sm:grid-cols-3 relative"
-    : "mt-6 grid grid-cols-1 gap-1 relative"
+  // In responsive mode, use grid layout. In non-responsive mode, use absolute positioning for drag/drop
+  if (responsive) {
+    const gridClass = "mt-8 grid grid-cols-1 gap-8 sm:grid-cols-3 relative"
+    const itemStackClass = "space-y-2"
 
-  // NEW: tighter spacing between chart and label when responsive is OFF
-  const itemStackClass = responsive ? "space-y-2" : "space-y-1 h-48"
+    return (
+      <div ref={gridRef} className={gridClass}>
+        <ColumnCrosshairOverlay gridRef={gridRef} />
+        {allSeries.map((series, idx) => (
+          <div key={idx} className={`h-48 ${itemStackClass}`} data-chart-index={idx}>
+            <TimeSeriesChart title={`Chart ${idx + 1}`} color={colors[idx] ?? "#0072db"} data={series} height={160} />
+          </div>
+        ))}
+      </div>
+    )
+  }
 
+  // Non-responsive mode: use drag and drop layout
   return (
-    <div ref={gridRef} className={gridClass}>
-      <ColumnCrosshairOverlay gridRef={gridRef} />
-      {allSeries.map((series, idx) => (
-        <div key={idx} className={`h-48 ${itemStackClass}`} data-chart-index={idx}>
-          <TimeSeriesChart title={`Chart ${idx + 1}`} color={colors[idx] ?? "#0072db"} data={series} height={160} />
-        </div>
-      ))}
+    <div ref={gridRef} className="mt-6 relative min-h-[800px]" style={{ minHeight: "800px" }}>
+      {/* Don't render charts until persistence is loaded to avoid layout flicker */}
+      <DragModeCrosshairOverlay containerRef={gridRef} />
+      {isLoaded && allSeries.map((series, idx) => {
+        const chartId = `chart-${idx}`
+        const savedLayout = getLayout(chartId)
+        
+        // Default positions in a single vertical column if no saved layout
+        const defaultPosition = savedLayout
+          ? { x: savedLayout.x, y: savedLayout.y }
+          : { x: 20, y: idx * 260 }
+        const defaultSize = savedLayout
+          ? { width: savedLayout.width, height: savedLayout.height }
+          : { width: viewportWidth - 80, height: 240 }
+
+        return (
+          <ResizableChart
+            key={idx}
+            id={chartId}
+            defaultPosition={defaultPosition}
+            defaultSize={defaultSize}
+            onPositionChange={(id, x, y) => {
+              updateLayout(id, { x, y })
+            }}
+            onSizeChange={(id, width, height) => {
+              updateLayout(id, { width, height })
+            }}
+          >
+            <TimeSeriesChart 
+              title={`Chart ${idx + 1}`} 
+              color={colors[idx] ?? "#0072db"} 
+              data={series} 
+              height={200} 
+            />
+          </ResizableChart>
+        )
+      })}
     </div>
   )
 }
