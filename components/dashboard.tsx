@@ -61,7 +61,7 @@ function Toolbar() {
 
 function ChartsGrid() {
   const { responsive } = useChartsSync()
-  const gridRef = useRef<HTMLDivElement>(null)
+  const gridRef = useRef<HTMLDivElement>(null!)
   const { getLayout, updateLayout, isLoaded } = useChartPersistence()
   const [viewportWidth, setViewportWidth] = useState(800)
 

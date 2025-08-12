@@ -53,8 +53,7 @@ export default function ResizableChart({
     >
       <div className="w-full h-full flex flex-col">
         <div className="chart-drag-handle cursor-move h-8 flex-shrink-0 border-b border-gray-100 bg-gray-50 rounded-t-lg flex items-center px-3">
-          <div className="text-xs text-gray-500 select-none">Drag to move</div>
-          <div className="ml-auto text-xs text-gray-400">⋮⋮</div>
+          <div className="ml-auto text-xs text-gray-800">⋮⋮</div>
         </div>
         <div className="flex-1 p-2 overflow-hidden">
           {children}
