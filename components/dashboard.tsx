@@ -1,19 +1,17 @@
 "use client"
 
 import { useMemo, useRef, useEffect, useState } from "react"
-import { CalendarIcon } from "lucide-react"
 import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
-import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { ChartsSyncProvider, useChartsSync } from "@/components/charts-sync-provider"
-import { DateRangePicker } from "@/components/date-range-picker"
-import { generateDailySeries, densifySeries } from "@/lib/generate-data"
+import { generateDailySeries } from "@/lib/generate-data"
 import TimeSeriesChart from "@/components/time-series-chart"
 import ColumnCrosshairOverlay from "@/components/column-crosshair-overlay"
 import ResizableChart from "@/components/resizable-chart"
 import { useChartPersistence } from "@/hooks/use-chart-persistence"
 import DragModeCrosshairOverlay from "@/components/drag-mode-crosshair-overlay"
+import ToolbarDateRangePicker from "@/components/toolbar-date-range-picker"
 
 export default function Dashboard() {
   return (
@@ -38,7 +36,7 @@ function DashboardContent() {
 }
 
 function Toolbar() {
-  const { responsive, setResponsive, dateRange } = useChartsSync()
+  const { responsive, setResponsive } = useChartsSync()
 
   return (
     <Card className="w-full flex flex-row items-center space-between gap-4 px-3 py-2 border border-[#e4e4e7] bg-[#ffffff]">
@@ -56,21 +54,7 @@ function Toolbar() {
       </div>
 
       {/* Right: Date range picker */}
-      <div className="ml-auto shrink-0">
-        <DateRangePicker
-          value={dateRange}
-          onChange={() => {}}
-          trigger={
-            <Button variant="outline" className="h-9 gap-2 bg-white">
-              <CalendarIcon className="h-4 w-4 text-[#71717a]" />
-              <span className="text-sm">
-                {dateRange.from?.toLocaleDateString(undefined, { month: "short", day: "2-digit", year: "numeric" })} -{" "}
-                {dateRange.to?.toLocaleDateString(undefined, { month: "short", day: "2-digit", year: "numeric" })}
-              </span>
-            </Button>
-          }
-        />
-      </div>
+      <ToolbarDateRangePicker />
     </Card>
   )
 }
@@ -95,15 +79,15 @@ function ChartsGrid() {
     const start = new Date("2024-01-01")
     const end = new Date("2024-09-01")
     return [
-      densifySeries(generateDailySeries(start, end, { seed: 1, base: 220, spread: 80 }), 5),
-      densifySeries(generateDailySeries(start, end, { seed: 2, base: 200, spread: 70 }), 5),
-      densifySeries(generateDailySeries(start, end, { seed: 3, base: 210, spread: 75 }), 5),
-      densifySeries(generateDailySeries(start, end, { seed: 4, base: 230, spread: 60 }), 5),
-      densifySeries(generateDailySeries(start, end, { seed: 5, base: 215, spread: 65 }), 5),
-      densifySeries(generateDailySeries(start, end, { seed: 6, base: 225, spread: 85 }), 5),
-      densifySeries(generateDailySeries(start, end, { seed: 7, base: 190, spread: 70 }), 5),
-      densifySeries(generateDailySeries(start, end, { seed: 8, base: 200, spread: 80 }), 5),
-      densifySeries(generateDailySeries(start, end, { seed: 9, base: 205, spread: 75 }), 5),
+      generateDailySeries(start, end, { seed: 1, base: 220, spread: 80 }),
+      generateDailySeries(start, end, { seed: 2, base: 200, spread: 70 }),
+      generateDailySeries(start, end, { seed: 3, base: 210, spread: 75 }),
+      generateDailySeries(start, end, { seed: 4, base: 230, spread: 60 }),
+      generateDailySeries(start, end, { seed: 5, base: 215, spread: 65 }),
+      generateDailySeries(start, end, { seed: 6, base: 225, spread: 85 }),
+      generateDailySeries(start, end, { seed: 7, base: 190, spread: 70 }),
+      generateDailySeries(start, end, { seed: 8, base: 200, spread: 80 }),
+      generateDailySeries(start, end, { seed: 9, base: 205, spread: 75 }),
     ]
   }, [])
 
@@ -137,7 +121,7 @@ function ChartsGrid() {
       {isLoaded && allSeries.map((series, idx) => {
         const chartId = `chart-${idx}`
         const savedLayout = getLayout(chartId)
-        
+
         // Default positions in a single vertical column if no saved layout
         const defaultPosition = savedLayout
           ? { x: savedLayout.x, y: savedLayout.y }
@@ -159,11 +143,11 @@ function ChartsGrid() {
               updateLayout(id, { width, height })
             }}
           >
-            <TimeSeriesChart 
-              title={`Chart ${idx + 1}`} 
-              color={colors[idx] ?? "#0072db"} 
-              data={series} 
-              height={200} 
+            <TimeSeriesChart
+              title={`Chart ${idx + 1}`}
+              color={colors[idx] ?? "#0072db"}
+              data={series}
+              height={200}
             />
           </ResizableChart>
         )

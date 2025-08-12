@@ -9,10 +9,10 @@ import { useChartPersistence } from "@/hooks/use-chart-persistence"
  * in drag/resize mode (non-responsive). Shows at the same relative X-axis position
  * based on hover state. Appears above non-resized charts but below resized charts.
  */
-export default function DragModeCrosshairOverlay({ 
-  containerRef 
-}: { 
-  containerRef: React.RefObject<HTMLDivElement> 
+export default function DragModeCrosshairOverlay({
+  containerRef
+}: {
+  containerRef: React.RefObject<HTMLDivElement>
 }) {
   const { hoverRatio } = useChartsSync()
   const { layouts } = useChartPersistence()
@@ -31,25 +31,25 @@ export default function DragModeCrosshairOverlay({
 
     // Find all resizable chart containers
     const chartContainers = Array.from(containerEl.querySelectorAll<HTMLElement>('[data-rnd]'))
-    
+
     if (chartContainers.length === 0) {
       setCrosshairLine(null)
       return
     }
 
     const containerRect = containerEl.getBoundingClientRect()
-    
+
     // Find the bounds of only non-resized charts
     let topMost = Infinity
     let bottomMost = -Infinity
     let crosshairX: number | null = null
     let hasNonResizedCharts = false
-    
+
     chartContainers.forEach((chartEl, index) => {
       // Get the chart ID from the data attribute or infer from index
       const chartId = `chart-${index}`
       const savedLayout = layouts.find(layout => layout.id === chartId)
-      
+
       // Chart is considered "resized" if it has a saved layout with non-default dimensions
       // Default size is viewportWidth - 80 x 240
       const defaultWidth = window.innerWidth - 80
@@ -57,30 +57,30 @@ export default function DragModeCrosshairOverlay({
       const isResized = savedLayout && (
         savedLayout.width !== defaultWidth || savedLayout.height !== defaultHeight
       )
-      
+
       // Skip resized charts
       if (isResized) return
-      
+
       hasNonResizedCharts = true
-      
+
       // Find the chart content area (skip the drag handle header)
       const chartContent = chartEl.querySelector<HTMLElement>('.flex-1')
       const contentRect = chartContent ? chartContent.getBoundingClientRect() : chartEl.getBoundingClientRect()
-      
+
       // Use the first non-resized chart to determine X position
       if (crosshairX === null) {
         const relativeX = Math.max(0, Math.min(1, hoverRatio)) * contentRect.width
         crosshairX = contentRect.left - containerRect.left + relativeX
       }
-      
+
       // Track the vertical bounds
       const top = contentRect.top - containerRect.top
       const bottom = top + contentRect.height
-      
+
       topMost = Math.min(topMost, top)
       bottomMost = Math.max(bottomMost, bottom)
     })
-    
+
     // Only show crosshair if there are non-resized charts
     if (!hasNonResizedCharts) {
       setCrosshairLine(null)
@@ -110,14 +110,14 @@ export default function DragModeCrosshairOverlay({
 
     const ro = new ResizeObserver(() => computeCrosshairLine())
     ro.observe(containerEl)
-    
+
     // Also observe chart containers for position/size changes
     const chartContainers = containerEl.querySelectorAll('[data-rnd]')
     chartContainers.forEach(chart => ro.observe(chart))
 
     const onResize = () => computeCrosshairLine()
     window.addEventListener("resize", onResize)
-    
+
     return () => {
       ro.disconnect()
       window.removeEventListener("resize", onResize)

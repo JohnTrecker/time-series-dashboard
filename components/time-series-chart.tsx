@@ -73,6 +73,7 @@ export default function TimeSeriesChart({
           <BarChart
             data={filtered}
             syncId="sync-all"
+            barCategoryGap={0}
             onMouseMove={(state: unknown) => {
               const chartState = state as { activeTooltipIndex?: number } | null
               if (!chartState || typeof chartState.activeTooltipIndex !== "number") return
@@ -131,7 +132,7 @@ export default function TimeSeriesChart({
             <CartesianGrid vertical={false} stroke="#f4f4f5" />
             <XAxis dataKey="date" hide />
             <YAxis hide domain={["dataMin - 10", "dataMax + 10"]} />
-            <Bar dataKey="value" fill="var(--color-series)" radius={[6, 6, 6, 6]} maxBarSize={12} />
+            <Bar dataKey="value" fill="var(--color-series)" radius={[6, 6, 6, 6]} />
 
             {selectionRange && (
               <ReferenceArea
